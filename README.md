@@ -20,3 +20,12 @@ That will pass usage=bytes to ts-cli, aggregate under the usage metric and I cou
 
 	ts-cli -p <label> to print the points, e.g. ts-cli -p mymetric for the label mymetric
 
+### Build
+
+$ make clean
+
+$ make all
+
+### License
+
+MIT
