@@ -31,11 +31,9 @@ func openOrCreateDB(path string) (*bolt.DB, error) {
 
 }
 
-func listValuesForLabel(metricName string, chart bool, db *bolt.DB) {
-	listValuesForLabelPerDays(metricName, 1, chart, db)
-}
+func listValuesForLabel(metricName string, printChart bool, days int,
+	printDP bool, db *bolt.DB) {
 
-func listValuesForLabelPerDays(metricName string, days int, printChart bool, db *bolt.DB) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(metricName))
 		if b == nil {
@@ -44,39 +42,57 @@ func listValuesForLabelPerDays(metricName string, days int, printChart bool, db 
 
 		}
 		c := b.Cursor()
-		min := []byte(time.Now().AddDate(0, 0, days*-1).Format(time.RFC3339))
-		max := []byte(time.Now().AddDate(0, 0, 0).Format(time.RFC3339))
-		if printChart {
-			// last date and a sparkline with max(value) printed
-			var values gds.Enum
-			var ndp string
-			var lastVal string
+		// last date and a sparkline with max(value) printed
+		var values gds.Enum
+		datapoints := 0
+		firstDataPoint := ""
+		lastDataPoint := ""
+
+		if days == -1 {
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				// only plots diff values as the space is limited
-				if string(v) == lastVal {
-					continue
+				if firstDataPoint == "" {
+					firstDataPoint = string(k)
 				}
-				lastVal = string(v)
+				lastDataPoint = string(k)
+
 				vf, _ := strconv.ParseFloat(string(v), 64)
-				t, err := time.Parse(time.RFC3339, string(k))
-
-				if err != nil {
-					fmt.Println(err)
-				}
 				values = append(values, vf)
-
-				ndp = t.String()
+				if printDP {
+					fmt.Println(string(k), string(v))
+				}
+				datapoints++
 			}
-			fmt.Printf("Max: %.2f MB\n", values.Percentile(100)/1024/1024)
-			fmt.Println("Newest datapoint: ", ndp)
+		} else {
+			min := []byte(time.Now().AddDate(0, 0, days*-1).Format(time.RFC3339))
+			max := []byte(time.Now().AddDate(0, 0, 0).Format(time.RFC3339))
+			for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) <= 0; k, v = c.Next() {
+				if firstDataPoint == "" {
+					firstDataPoint = string(k)
+				}
+				lastDataPoint = string(k)
+
+				vf, _ := strconv.ParseFloat(string(v), 64)
+				values = append(values, vf)
+				if printDP {
+					fmt.Println(string(k), string(v))
+				}
+				datapoints++
+			}
+
+		}
+		fmt.Printf("Timeseries name: %s\n", metricName)
+		fmt.Printf("Max: %.2f \n", values.Percentile(100))
+		fmt.Printf("99 percentile: %.2f \n", values.Percentile(99))
+		fmt.Printf("First datapoint: %s\n", firstDataPoint)
+		fmt.Printf("Last datapoint: %s\n", lastDataPoint)
+		fmt.Printf("Datapoints: %d\n", datapoints)
+
+		if printChart {
 			sparkline := spark.Line(values)
 			fmt.Println(sparkline)
 
-		} else {
-			for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) <= 0; k, v = c.Next() {
-				fmt.Println(string(k), string(v))
-			}
 		}
+
 		return nil
 	})
 

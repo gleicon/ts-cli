@@ -20,6 +20,8 @@ That will pass usage=bytes to ts-cli, aggregate under the usage metric and I cou
 
 	ts-cli -p <label> to print the points, e.g. ts-cli -p mymetric for the label mymetric
 
+	Extra parameters: -c for chart, -d for all datapoints and -i <days> to select how many days back from now() you want. 
+
 ### Build
 
 $ make clean
