@@ -14,7 +14,7 @@ import (
 	gds "github.com/gleicon/go-descriptive-statistics"
 
 	"github.com/boltdb/bolt"
-	"github.com/joliv/spark"
+	"github.com/guptarohit/asciigraph"
 )
 
 func openOrCreateDB(path string) (*bolt.DB, error) {
@@ -88,9 +88,8 @@ func listValuesForLabel(metricName string, printChart bool, days int,
 		fmt.Printf("Datapoints: %d\n", datapoints)
 
 		if printChart {
-			sparkline := spark.Line(values)
-			fmt.Println(sparkline)
-
+			graph := asciigraph.Plot(values)
+			fmt.Println(graph)
 		}
 
 		return nil

@@ -1,5 +1,5 @@
 deps:
-	go get -v
+	dep ensure
 
 test:
 	go test -v -bench=.
